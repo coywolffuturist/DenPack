@@ -100,7 +100,7 @@ Gemma 4 26B MoE and Qwen3.5-27B compete in the worker pool for the first 2 weeks
 **Agent profile schema:**
 ```json
 {
-  "agent_id": "wolf-003",
+  "agent_id": "mira",
   "model": "gemma-4-26b-a4b-it",
   "task_history": [...],
   "scores_by_domain": {
@@ -125,7 +125,59 @@ Gemma 4 26B MoE and Qwen3.5-27B compete in the worker pool for the first 2 weeks
 
 ---
 
-### Component 4: Local Search (Den Browser)
+### Component 4: Knowledge & Tools
+
+#### How agents access operational context
+
+Agents on the Den are not persistent — they don't carry memory between tasks. Every task dispatch by Arbor includes a dynamically assembled system prompt with exactly the context needed. No stale state, no split brain.
+
+**System prompt = 4 layers (assembled by Arbor at dispatch time):**
+
+1. **Identity + objective** — agent name, seeded objective, scoring criteria it will be evaluated on
+2. **Relevant memory snapshot** — Arbor fetches specific `.md` files from the VPS over SSH and injects them directly into the prompt. Files pulled per domain:
+   - Lumen/Vex: `memory/entities/prowl-strategies.md`, active positions, bankroll state
+   - Mira/Coda: research brief, prior reports, relevant reference docs
+   - Sable: Lucid backlog item, `repos/lucid/` relevant files, acceptance criteria
+3. **Tool manifest** — structured function signatures the agent can emit as JSON tool calls
+4. **Domain rules** — explicit "when in doubt, check X" pointers per agent
+
+#### Tool execution: VPS bridge model
+
+Agents do not call tools directly. They emit structured tool-call JSON in their response. Arbor intercepts, executes the tool on the VPS (where all tools already work — `gh`, browser, exec, Neon, etc.), and returns the result to the agent as a follow-up message.
+
+```
+Agent emits:  {"tool": "exec", "command": "gh issue list --repo coywolffuturist/lucid"}
+Arbor:        executes on VPS → returns stdout to agent
+Agent:        continues reasoning with the result
+```
+
+**Tools available to agents via bridge:**
+- `exec` — shell commands on VPS (git, gh, node scripts)
+- `gh` — GitHub: issues, PRs, repos, file contents
+- `browser` — Den browser search (replaces Brave Search API)
+- `neon` — Postgres queries against pack_* and project tables
+- `read_memory` — fetch any `.md` file from `/home/ubuntu/coywolf/memory/`
+- `nodes_run` — run commands on Den (for Prowl execution, model ops)
+
+**Why bridge over direct tool access:**
+- All tools already work on VPS — zero duplication
+- Arbor sees every tool call — full auditability, contributes to efficiency scoring
+- No credentials needed on Den — VPS holds all auth
+- Single execution layer = easier debugging
+
+#### Per-agent knowledge sources
+
+| Agent | Memory files injected | Key tools |
+|---|---|---|
+| Lumen | `prowl-strategies.md`, active positions, bankroll | `nodes_run` (strategy execution), `neon` (position tracking) |
+| Vex | `prowl-strategies.md`, backtest history, market data | `browser` (market research), `exec` (backtest scripts) |
+| Mira | Research brief, `reference/` relevant docs | `browser` (web research), `read_memory` |
+| Coda | Mira's output, prior reports, report templates | `read_memory`, `exec` (write report to file) |
+| Sable | Lucid issue/backlog item, relevant source files | `gh` (read/write issues, PRs), `exec` (run tests) |
+
+---
+
+### Component 5: Local Search (Den Browser)
 
 **Replaces:** Brave Search API (kills $85/mo immediately)
 **Implementation:** Den browser (Chrome) controlled via existing `browser` tool + `nodes.run`
