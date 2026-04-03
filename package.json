@@ -1,0 +1,25 @@
+{
+  "name": "denpack",
+  "version": "0.1.0",
+  "description": "Local AI pack — Arbor + Lumen/Vex/Mira/Coda/Sable",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "router": "node --experimental-strip-types router/index.ts",
+    "coordinator": "node --experimental-strip-types coordinator/index.ts",
+    "status": "bash scripts/status.sh"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "express": "^4.21.2",
+    "openai": "^4.87.0",
+    "uuid": "^11.0.5",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.14.0",
+    "@types/uuid": "^10.0.0",
+    "typescript": "^5.9.3"
+  }
+}
