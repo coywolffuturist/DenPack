@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "router": "node --experimental-strip-types router/index.ts",
-    "coordinator": "node --experimental-strip-types coordinator/index.ts",
+    "coordinator": "node dist/coordinator/server.js",
     "status": "bash scripts/status.sh"
   },
   "dependencies": {
