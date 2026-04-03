@@ -65,7 +65,7 @@ DenPack/
 
 ## Docs
 
-- [System Design Spec](docs/system-design.md)
+- [System Design Spec](specs/system-design.md)
 
 ---
 
