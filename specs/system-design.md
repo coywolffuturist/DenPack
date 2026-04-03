@@ -1,5 +1,5 @@
 # Local Pack System — Design Spec
-*Version 1.0 — 2026-04-03*
+*Version 1.1 — 2026-04-03*
 
 ---
 
@@ -141,29 +141,41 @@ Agents on the Den are not persistent — they don't carry memory between tasks. 
 3. **Tool manifest** — structured function signatures the agent can emit as JSON tool calls
 4. **Domain rules** — explicit "when in doubt, check X" pointers per agent
 
-#### Tool execution: VPS bridge model
+#### Tool execution: Co-located model (tools + memory on Den)
 
-Agents do not call tools directly. They emit structured tool-call JSON in their response. Arbor intercepts, executes the tool on the VPS (where all tools already work — `gh`, browser, exec, Neon, etc.), and returns the result to the agent as a follow-up message.
+Agents have direct access to both tools and memory on the Den. No round trips to the VPS for every tool call. This keeps the agent's chain of thought tight — it can reason about memory and tools jointly without latency breaking the loop.
 
 ```
-Agent emits:  {"tool": "exec", "command": "gh issue list --repo coywolffuturist/lucid"}
-Arbor:        executes on VPS → returns stdout to agent
-Agent:        continues reasoning with the result
+Agent:   reads memory/prowl-strategies.md directly
+Agent:   recalls backtest #7 failed with this approach
+Agent:   skips that tool call, tries different approach
+Agent:   executes gh to read Lucid issue
+Agent:   returns result — no Arbor intermediary
 ```
 
-**Tools available to agents via bridge:**
-- `exec` — shell commands on VPS (git, gh, node scripts)
-- `gh` — GitHub: issues, PRs, repos, file contents
-- `browser` — Den browser search (replaces Brave Search API)
-- `neon` — Postgres queries against pack_* and project tables
-- `read_memory` — fetch any `.md` file from `/home/ubuntu/coywolf/memory/`
-- `nodes_run` — run commands on Den (for Prowl execution, model ops)
+**Tools installed locally on Den per agent:**
+- `gh` — GitHub CLI (authenticated on Den)
+- `browser` — Den browser search via local Chrome CDP
+- `neon` — Postgres client with direct connection string
+- `read_memory` — local read of synced memory snapshot
+- `exec` — shell execution on Den (strategy scripts, tests)
 
-**Why bridge over direct tool access:**
-- All tools already work on VPS — zero duplication
-- Arbor sees every tool call — full auditability, contributes to efficiency scoring
-- No credentials needed on Den — VPS holds all auth
-- Single execution layer = easier debugging
+**Memory sync:**
+At task dispatch, Arbor pushes a fresh memory snapshot to the agent's working directory (SSH rsync from VPS, ~1-2 seconds). Agent reads locally for the duration of the task. No stale state — snapshot is always task-specific and fresh.
+
+**Arbor's role:**
+Arbor still dispatches, scores, and synthesizes. But it scores based on outputs and token logs — not by intercepting every tool call. Agents are trusted to execute autonomously. Auditability comes from structured output logging, not from being a proxy.
+
+**Why co-location over VPS bridge:**
+- Tight reasoning loop — agent doesn't break CoT waiting for tool results
+- Agents that remember + act together outperform agents that request both externally
+- Latency: local tool calls are ~10ms vs ~200-500ms round trip
+- Scales better — 5 agents making concurrent tool calls don't bottleneck through one VPS proxy
+
+**Credentials on Den:**
+- `gh` auth token stored in Den keychain (already partially set up via LM Studio login)
+- Neon connection string in Den `.env` (never in repo)
+- SSH key for VPS memory sync already exists
 
 #### Per-agent knowledge sources
 
@@ -277,11 +289,13 @@ CREATE TABLE pack_scores (
 
 **Day 2-3:** Build Router on VPS. Classification logic. Basic routing rules. No local pack yet — just starts routing decisions.
 
-**Day 3-4:** Neon schema. Build Coordinator + Evaluator. Start with manual task dispatch (no queue yet).
+**Day 3-4:** Neon schema. Build Arbor (Coordinator + Evaluator). Memory sync mechanism (VPS → Den rsync at task dispatch).
 
-**Day 4-5:** Wire task queue. Seed 3 worker agents with pillar objectives. Full loop: Router → Coordinator → Worker → Score → Response.
+**Day 4-5:** Install tool suite on Den: `gh` auth, Neon client, browser CDP wiring, exec wrappers. Verify each tool works locally on Den.
 
-**Day 5-6:** First live run. Prowl monitor overnight. Observe coordinator scoring.
+**Day 5-6:** Wire task queue. Seed all 5 workers with co-located tools + memory. Full loop: Router → Arbor → Worker (local tools + memory) → Score → Response.
+
+**Day 6-7:** First live run. Prowl monitor overnight with Lumen. Observe Arbor scoring.
 
 **Week 2:** Tune scoring weights. Observe domain specialization emerging. Add workers if throughput demands it.
 
