@@ -1,7 +1,7 @@
 {
   "name": "denpack",
   "version": "0.1.0",
-  "description": "Local AI pack — Arbor + Lumen/Vex/Mira/Coda/Sable",
+  "description": "Local AI pack \u2014 Arbor + Lumen/Vex/Mira/Coda/Sable",
   "type": "module",
   "scripts": {
     "build": "tsc",
@@ -20,6 +20,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^22.14.0",
     "@types/uuid": "^10.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "tsx": "^4.19.3"
   }
 }
