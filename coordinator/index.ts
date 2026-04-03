@@ -1,8 +1,9 @@
 import sql from '../db/client.js';
+import path from 'path';
 import { selectAgent } from './dispatcher.js';
 import { scoreTask, shouldEscalate } from './evaluator.js';
 import { synthesizeResponse } from './synthesizer.js';
-import { syncMemoryForAgent } from './memory-sync.js';
+import { buildAgentContext } from './memory-retrieval.js';
 import { runLumen } from '../workers/lumen/agent.js';
 import { runVex } from '../workers/vex/agent.js';
 import { runMira } from '../workers/mira/agent.js';
@@ -25,8 +26,21 @@ export async function handleTask(taskId: string, domain: string, input: string):
   // 1. Select best agent
   const agent = await selectAgent(domain);
 
-  // 2. Sync memory to Den for this agent
-  const memoryDir = await syncMemoryForAgent(agent);
+  // 2. Build semantic memory context for this agent
+  const VPS_MEMORY = process.env.VPS_MEMORY_PATH ?? '/home/ubuntu/coywolf/memory';
+  const INDEX_PATH = process.env.MEMORY_INDEX_PATH ?? '/home/ubuntu/coywolf/memory/memory-index.md';
+  const DEN_WORKDIR = process.env.DEN_AGENT_WORKDIR ?? '/Users/coywolfden/.denpack/agents';
+  const agentDir = path.join(DEN_WORKDIR, agent, 'memory');
+  const { contextPath, sectionCount, tokenEstimate } = buildAgentContext({
+    agent,
+    domain,
+    taskText: input,
+    agentDir,
+    memoryRoot: VPS_MEMORY,
+    indexPath: INDEX_PATH,
+  });
+  const memoryDir = path.dirname(contextPath);
+  console.log(`[arbor] memory: ${sectionCount} sections, ~${tokenEstimate} tokens → ${contextPath}`);
 
   // 3. Mark assigned
   await sql`UPDATE pack_tasks SET status='assigned', assigned_to=${agent} WHERE id=${taskId}::uuid`;
