@@ -38,7 +38,10 @@ export async function runAgent(task: AgentTask): Promise<AgentOutput> {
 
     const choice = resp.choices[0];
     totalTokens += resp.usage?.total_tokens ?? 0;
-    const content = choice.message.content ?? '';
+    // Some local models (Qwen3 with thinking) return content in reasoning_content
+    const rawContent = choice.message.content ?? '';
+    const reasoning = (choice.message as unknown as Record<string, string>)['reasoning_content'] ?? '';
+    const content = rawContent || reasoning;
     messages.push({ role: 'assistant', content });
 
     // Check for tool call JSON blocks
