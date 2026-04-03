@@ -42,6 +42,10 @@ You are building DenPack — a local AI pack system. Apply these overrides to al
     
     Do not assume a single grep caught everything.
 
+## Design Philosophy
+
+Before implementing any change, read `change-philosophy.md`. Every change should be redesigned as if it were a foundational assumption, not bolted on.
+
 ## DenPack-Specific
 
 - Work in the `build/v1` branch — never commit to main directly
