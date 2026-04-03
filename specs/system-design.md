@@ -349,6 +349,16 @@ CREATE TABLE pack_scores (
 
 ---
 
+### Semantic Memory Retrieval
+
+**What:** Replace blunt full-file memory push with task-aware section retrieval. Arbor reads the task domain + text, selects only the relevant sections from a lightweight memory index, and builds a tight composite context file for the agent. No external dependencies — just a manifest + line-slicing.
+
+**Why it matters for Council Mode:** V1 Council costs 5 agents × full memory files per round. Semantic retrieval cuts that 50-70%, making multi-agent councils practical at scale on local models.
+
+**Full spec:** [`specs/semantic-memory-retrieval.md`](./semantic-memory-retrieval.md)
+
+---
+
 ### Evolutionary Pressure (performance-triggered, not calendar-based)
 
 **What:** Each agent continuously faces survival pressure. When an agent underperforms or stagnates, Arbor clones it into two variants, seeds each with a deliberately different strategy (via Coywolf/Anthropic), runs them in competition, and promotes the winner as the new canonical agent for that slot.
