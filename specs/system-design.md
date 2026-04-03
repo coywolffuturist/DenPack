@@ -349,4 +349,46 @@ CREATE TABLE pack_scores (
 
 ---
 
+### Evolutionary Pressure (performance-triggered, not calendar-based)
+
+**What:** Each agent continuously faces survival pressure. When an agent underperforms or stagnates, Arbor clones it into two variants, seeds each with a deliberately different strategy (via Coywolf/Anthropic), runs them in competition, and promotes the winner as the new canonical agent for that slot.
+
+**Why performance-triggered, not weekly:**
+Different roles accumulate tasks at wildly different rates. Lumen runs Prowl 24/7 — it might log 20 tasks in a day. Sable builds Lucid features — maybe 3-5 tasks a week. A fixed weekly cadence punishes fast agents (too slow to improve) and destabilizes slow ones (too few data points to judge fairly). Threshold-based triggering lets each agent evolve at the natural pace of its domain.
+
+**Two evolution triggers:**
+
+1. **Underperformance** — rolling composite score < 6.5 over last 20 tasks. Agent is demonstrably stuck. Trigger immediately.
+2. **Stagnation** — composite score hasn't improved by > 0.5 points over last 30 tasks, regardless of absolute level. Even a good agent that stops improving gets forked.
+
+**Minimum task floor:** 10 completed tasks before either trigger can fire. New clones get a grace period — no premature culling.
+
+**The evolution cycle:**
+
+1. Trigger fires on agent X
+2. Arbor escalates to Coywolf with a structured brief:
+   - Agent name + domain
+   - Last N task history + scores
+   - Strategies attempted
+   - What top performers in the pack did differently
+3. Coywolf seeds two genuinely divergent strategies — not variations on the same theme, but distinct hypotheses about what could work better
+4. Two clones (X-A, X-B) are instantiated with those seeded strategies in their system prompts
+5. Original agent X continues running alongside both clones (pack temporarily has 6)
+6. After minimum 10 tasks each: best composite score of X-A vs X-B becomes the new canonical agent for that slot
+7. Original X and the losing clone are retired. Pack returns to 5.
+
+**Why Coywolf seeds the divergence (not Arbor):**
+Arbor (E4B) is a coordinator — fast, always-on, but limited reasoning capacity. Generating genuinely novel divergent strategies requires frontier-model judgment. Coywolf reads the full performance brief and produces two hypotheses the pack then tests empirically. Over time this creates a feedback loop: Coywolf learns which strategic hypotheses pan out across domains, compounding into better seeding in future cycles.
+
+**What this prevents:**
+- Path dependency — winner-takes-all convergence to a local optimum
+- Strategic monoculture — the pack never fully commits to one approach per domain
+- Stagnation — good-enough agents that stop improving get challenged anyway
+
+**Neon additions needed:**
+- `pack_agent_lineages` — track clone relationships (parent → child), retirement history
+- `pack_evolution_events` — log each trigger, Coywolf brief, seeded strategies, tournament result
+
+---
+
 *Spec written: 2026-04-03 | Status: Approved, build in progress*
