@@ -322,4 +322,31 @@ CREATE TABLE pack_scores (
 
 ---
 
-*Spec written: 2026-04-03 | Status: Awaiting Brendan approval*
+## V2 Enhancements
+
+### Council Mode (Karpathy LLM Council pattern)
+
+**What:** Instead of Arbor dispatching to one worker, dispatch the same question to multiple workers simultaneously. Each worker reviews the others' responses with authorship anonymized (so no worker defers to another by name). Arbor acts as Chairman — synthesizes the final answer from all responses and reviews.
+
+**Why local compute makes this viable:** Council mode costs ~5x more inference per query. On Anthropic that's prohibitive. On Den with local models — effectively free. This is the scenario where local compute unlocks a pattern that's impractical at cloud prices.
+
+**Three-stage flow:**
+1. **First opinions** — same query dispatched to 3-5 workers independently, responses collected
+2. **Anonymous review** — each worker receives other workers' responses with names stripped; ranks them on accuracy and insight
+3. **Chairman synthesis** — Arbor reads all responses + rankings, produces final answer
+
+**Where council mode adds most value:**
+- **Vex strategy development** — 3 strategy variants, council picks the most robust
+- **Mira research synthesis** — multiple research passes, council surfaces best-supported claims
+- **Escalation decisions** — instead of heuristic score threshold, council votes on whether to escalate to Coywolf
+- **Architecture decisions** — any question where sycophancy is dangerous
+
+**Implementation note:** Anonymization is the critical detail. Without it, models defer to perceived authority. With it, they judge on merit. Each worker receives a prompt like: "Here are three responses labeled A, B, C. Rank them by accuracy and insight. Do not consider who wrote them."
+
+**Neon additions needed:**
+- `pack_council_sessions` — group multiple task runs under one council session
+- `pack_council_votes` — individual worker rankings per council session
+
+---
+
+*Spec written: 2026-04-03 | Status: Approved, build in progress*
