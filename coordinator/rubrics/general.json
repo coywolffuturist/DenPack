@@ -1,0 +1,8 @@
+{
+  "domain": "general",
+  "criteria": [
+    { "name": "question_answered", "weight": 0.40, "signal": "directly addresses the question or task requested" },
+    { "name": "reasoning_shown",   "weight": 0.35, "signal": "explains the rationale, steps, or logic behind the answer" },
+    { "name": "actionable",        "weight": 0.25, "signal": "provides a recommendation, next step, or concrete action" }
+  ]
+}

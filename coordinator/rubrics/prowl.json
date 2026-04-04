@@ -1,0 +1,9 @@
+{
+  "domain": "prowl",
+  "criteria": [
+    { "name": "edge_identified",  "weight": 0.30, "signal": "mentions a numeric edge or probability (e.g. 72%, 0.31)" },
+    { "name": "position_sizing",  "weight": 0.25, "signal": "mentions kelly fraction, position size, or bankroll percentage" },
+    { "name": "venue_selected",   "weight": 0.20, "signal": "mentions polymarket, kalshi, or a specific market" },
+    { "name": "reasoning_shown",  "weight": 0.25, "signal": "explains why the trade was taken or not taken" }
+  ]
+}

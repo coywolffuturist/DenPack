@@ -24,7 +24,8 @@ const AGENT_RUNNERS: Record<AgentName, AgentRunner> = {
 
 export async function handleTask(taskId: string, domain: string, input: string): Promise<string> {
   // 1. Select best agent
-  const agent = await selectAgent(domain);
+  const { agent, confidence } = await selectAgent(domain);
+  console.log(`[arbor] dispatcher: agent=${agent}, confidence=${confidence.toFixed(3)}`);
 
   // 2. Build semantic memory context for this agent
   const VPS_MEMORY = process.env.VPS_MEMORY_PATH ?? '/home/ubuntu/coywolf/memory';

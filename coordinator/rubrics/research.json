@@ -1,0 +1,9 @@
+{
+  "domain": "research",
+  "criteria": [
+    { "name": "source_cited",             "weight": 0.30, "signal": "cites a source, URL, reference, or named publication" },
+    { "name": "claim_supported",          "weight": 0.30, "signal": "backs a claim with data, statistics, or quoted evidence" },
+    { "name": "conclusion_clear",         "weight": 0.25, "signal": "states a conclusion, finding, or summary result" },
+    { "name": "uncertainty_acknowledged", "weight": 0.15, "signal": "acknowledges uncertainty, limitations, or caveats" }
+  ]
+}

@@ -33,3 +33,6 @@ CREATE TABLE IF NOT EXISTS pack_scores (
   composite FLOAT NOT NULL,
   scored_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- pack_scores: add flag column for low-confidence routing signals
+ALTER TABLE pack_scores ADD COLUMN IF NOT EXISTS flag TEXT;
