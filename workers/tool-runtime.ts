@@ -25,13 +25,19 @@ export async function executeTool(call: ToolCall, memoryDir: string): Promise<To
         return { success: true, output: readFileSync(p, 'utf8') };
       }
       case 'browser_search': {
-        // Calls Den Chrome CDP search — stubbed; full impl in search-proxy
+        // Calls Den Chrome CDP search -- stubbed; full impl in search-proxy
         return { success: false, output: 'browser_search: not yet implemented' };
       }
       case 'neon_query': {
-        // Direct Neon query from Den — requires NEON_DATABASE_URL on Den
-        const sql = (await import('../db/client.js')).default;
-        const rows = await sql(call.query as string);
+        const query = (call.query as string ?? '').trim();
+        // Strip leading SQL comments before checking intent
+        const stripped = query.replace(/^(--[^\n]*\n|\/\*[\s\S]*?\*\/\s*)*/i, '').trimStart();
+        if (!/^SELECT\s/i.test(stripped)) {
+          return { success: false, output: 'neon_query: only SELECT statements are permitted' };
+        }
+        const sqlClient = (await import('../db/client.js')).default;
+        // Use ordinary function call (not template tag) to pass raw query string
+        const rows = await sqlClient(query);
         return { success: true, output: JSON.stringify(rows) };
       }
       default: {
