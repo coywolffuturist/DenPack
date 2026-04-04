@@ -5,6 +5,8 @@ const RESEARCH_KEYWORDS = ['research', 'find', 'analyze', 'report', 'summarize',
 const LUCID_KEYWORDS = ['lucid', 'feature', 'build', 'implement', 'fix', 'pr', 'issue', 'code'];
 const ESCALATE_KEYWORDS = ['ask coywolf', 'your opinion', 'what do you think', 'architecture decision'];
 
+const CONFIDENCE_THRESHOLD = parseFloat(process.env.CLASSIFIER_CONFIDENCE_THRESHOLD ?? '0.5');
+
 export function classifyTask(message: string): ClassificationResult {
   const lower = message.toLowerCase();
 
@@ -23,6 +25,11 @@ export function classifyTask(message: string): ClassificationResult {
   const domain = sorted[0][0] as Domain;
   const topScore = sorted[0][1];
   const confidence = Math.min(0.95, topScore / 5);
+
+  // Low confidence: no clear domain match -- escalate rather than guess
+  if (confidence < CONFIDENCE_THRESHOLD) {
+    return { route: 'coywolf', domain: 'general', confidence, reason: 'low confidence classification' };
+  }
 
   return { route: 'local', domain, confidence, reason: `keyword match: ${domain}` };
 }
