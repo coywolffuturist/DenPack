@@ -1,7 +1,28 @@
 import OpenAI from 'openai';
+import { execSync } from 'child_process';
 import { executeTool, type ToolCall } from './tool-runtime.js';
 
 const client = new OpenAI({ baseURL: process.env.LMSTUDIO_BASE_URL ?? 'http://localhost:1234/v1', apiKey: 'lmstudio' });
+
+/**
+ * Builds a markdown environment snapshot injected at agent startup.
+ * Gives the agent immediate orientation without wasting turns.
+ */
+function buildEnvSnapshot(tools: string[]): string {
+  const timestamp = new Date().toISOString();
+  const cwd = (() => { try { return execSync('pwd', { encoding: 'utf8' }).trim(); } catch { return process.cwd(); } })();
+  const topLevelFiles = (() => {
+    try { return execSync('ls', { cwd, encoding: 'utf8' }).trim().split('\n').join(', '); }
+    catch { return '(unavailable)'; }
+  })();
+  return [
+    '## Environment Snapshot',
+    `- **Timestamp:** ${timestamp}`,
+    `- **Working directory:** ${cwd}`,
+    `- **Top-level files:** ${topLevelFiles}`,
+    `- **Available tools:** ${tools.length > 0 ? tools.join(', ') : '(none)'}`,
+  ].join('\n');
+}
 
 export interface AgentTask {
   taskId: string;
@@ -20,8 +41,9 @@ export interface AgentOutput {
 }
 
 export async function runAgent(task: AgentTask): Promise<AgentOutput> {
+  const envSnapshot = buildEnvSnapshot([]);
   const messages: OpenAI.ChatCompletionMessageParam[] = [
-    { role: 'system', content: task.systemPrompt },
+    { role: 'system', content: `${envSnapshot}\n\n${task.systemPrompt}` },
     { role: 'user', content: task.input },
   ];
 
