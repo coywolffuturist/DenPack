@@ -1,0 +1,9 @@
+{
+  "domain": "lucid",
+  "criteria": [
+    { "name": "code_change_described", "weight": 0.30, "signal": "describes a code change, diff, implementation, or refactor" },
+    { "name": "file_identified",       "weight": 0.25, "signal": "names a specific file, path, module, or component" },
+    { "name": "test_mentioned",        "weight": 0.25, "signal": "mentions a test, spec, unit test, or test coverage" },
+    { "name": "no_regression_noted",   "weight": 0.20, "signal": "notes that existing behaviour is preserved or no regression introduced" }
+  ]
+}
