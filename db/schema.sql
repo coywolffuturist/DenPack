@@ -36,3 +36,31 @@ CREATE TABLE IF NOT EXISTS pack_scores (
 
 -- pack_scores: add flag column for low-confidence routing signals
 ALTER TABLE pack_scores ADD COLUMN IF NOT EXISTS flag TEXT;
+
+-- pack_forge_reviews: Forge verdict history scored against test outcomes
+CREATE TABLE IF NOT EXISTS pack_forge_reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reviewed_at TIMESTAMPTZ DEFAULT now(),
+  chunk_id TEXT NOT NULL,
+  sable_run_id TEXT,
+  verdict TEXT CHECK (verdict IN ('APPROVE', 'REJECT')),
+  score INTEGER CHECK (score BETWEEN 1 AND 10),
+  issues JSONB,
+  reasoning TEXT,
+  token_count INTEGER,
+  parse_error BOOLEAN DEFAULT false,
+  test_outcome TEXT CHECK (test_outcome IN ('pass', 'fail', 'pending')),
+  label TEXT CHECK (label IN ('true_positive', 'true_negative', 'false_negative', 'false_positive')),
+  f1_rolling FLOAT
+);
+
+-- pack_forge_checklist_proposals: Forge self-improvement proposals (Coywolf-approved before applied)
+CREATE TABLE IF NOT EXISTS pack_forge_checklist_proposals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  proposed_at TIMESTAMPTZ DEFAULT now(),
+  trigger_false_negatives JSONB,
+  proposal TEXT NOT NULL,
+  approved BOOLEAN,
+  approved_by TEXT DEFAULT 'coywolf',
+  applied_at TIMESTAMPTZ
+);
