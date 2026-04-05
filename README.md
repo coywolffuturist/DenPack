@@ -15,7 +15,8 @@ A flat worker pool with emergent specialization, scored by a lightweight coordin
 | **Vex** | Prowl strategist/backtester | Gemma 4 26B MoE (MLX 4-bit) |
 | **Mira** | Research | Gemma 4 26B MoE (MLX 4-bit) |
 | **Coda** | Report synthesis | Gemma 4 26B MoE (MLX 4-bit) |
-| **Sable** | Lucid builder | Qwen2.5-Coder-7B (MLX 4-bit) |
+| **Sable** | Code implementer (TDD) | Qwen2.5-Coder 32B (MLX 4-bit) |
+| **Forge** | Adversarial code reviewer | DeepSeek-Coder-V2 16B (MLX 4-bit) |
 
 ---
 
