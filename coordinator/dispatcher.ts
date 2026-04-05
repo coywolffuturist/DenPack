@@ -8,6 +8,11 @@ const DOMAIN_AGENT_MAP: Record<string, AgentName[]> = {
   general:  ['mira', 'lumen'],
 };
 
+// Non-routable agents (invoked by Arbor internally, not by task domain):
+// - forge: invoked by evaluator after every Sable chunk. Never in DOMAIN_AGENT_MAP.
+//   Forge model env: FORGE_MODEL (default: deepseek-coder-v2-lite-instruct)
+//   Forge endpoint env: FORGE_MODEL_URL (default: LMSTUDIO_BASE_URL → http://localhost:1234/v1)
+
 type AgentProfile = { agent_id: string; scores_by_domain: Record<string, number>; avg_composite_score: number };
 
 export async function selectAgent(domain: string): Promise<{ agent: AgentName; confidence: number }> {
