@@ -2,6 +2,8 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
 import type { TaskResult, Score } from './types.js';
+import sql from '../db/client.js';
+import { runForge, type ForgeInput, type ForgeOutput } from '../workers/forge/agent.js';
 
 const ESCALATION_THRESHOLD = parseFloat(process.env.ESCALATION_SCORE_THRESHOLD ?? '6.0');
 
@@ -143,4 +145,62 @@ export function scoreTask(result: TaskResult, expectedDomain: string): Score {
 
 export function shouldEscalate(score: Score): boolean {
   return score.composite < ESCALATION_THRESHOLD;
+}
+
+// ── Forge integration ──────────────────────────────────────────────────────
+
+export async function runForgeReview(input: ForgeInput): Promise<ForgeOutput> {
+  const result = await runForge(input);
+
+  // Persist to DB (non-fatal if it fails)
+  try {
+    await sql`
+      INSERT INTO pack_forge_reviews
+        (chunk_id, verdict, score, issues, reasoning, token_count, parse_error, test_outcome)
+      VALUES
+        (${input.taskId}, ${result.verdict}, ${result.score}, ${JSON.stringify(result.issues)},
+         ${result.reasoning}, ${result.tokenCount}, ${result.parseError ?? false}, 'pending')
+    `;
+  } catch (err) {
+    console.error('[evaluator] forge db write failed:', err);
+  }
+
+  return result;
+}
+
+export async function recordForgeOutcome(chunkId: string, testOutcome: 'pass' | 'fail'): Promise<void> {
+  // Fetch latest review for this chunk
+  const rows = await sql`
+    SELECT id, verdict FROM pack_forge_reviews
+    WHERE chunk_id = ${chunkId} AND test_outcome = 'pending'
+    ORDER BY reviewed_at DESC LIMIT 1
+  `;
+  if (!rows.length) return;
+
+  const { id, verdict } = rows[0] as { id: string; verdict: string };
+  const label =
+    verdict === 'APPROVE' && testOutcome === 'pass' ? 'true_positive' :
+    verdict === 'REJECT'  && testOutcome === 'fail' ? 'true_negative' :
+    verdict === 'APPROVE' && testOutcome === 'fail' ? 'false_negative' :
+    'false_positive';
+
+  // Compute rolling F1 from last 50 labeled reviews
+  const history = await sql`
+    SELECT label FROM pack_forge_reviews
+    WHERE label IS NOT NULL
+    ORDER BY reviewed_at DESC LIMIT 50
+  ` as { label: string }[];
+
+  const tp = history.filter(r => r.label === 'true_positive').length;
+  const fp = history.filter(r => r.label === 'false_positive').length;
+  const fn = history.filter(r => r.label === 'false_negative').length;
+  const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
+  const recall    = tp + fn > 0 ? tp / (tp + fn) : 0;
+  const f1 = precision + recall > 0 ? 2 * precision * recall / (precision + recall) : 0;
+
+  await sql`
+    UPDATE pack_forge_reviews
+    SET test_outcome = ${testOutcome}, label = ${label}, f1_rolling = ${f1}
+    WHERE id = ${id}
+  `;
 }

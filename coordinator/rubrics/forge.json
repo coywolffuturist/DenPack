@@ -1,0 +1,9 @@
+{
+  "domain": "forge",
+  "criteria": [
+    { "name": "verdict_given", "weight": 0.3, "signal": "VERDICT: present in output" },
+    { "name": "score_given", "weight": 0.2, "signal": "SCORE: integer 1-10 present" },
+    { "name": "issues_specific", "weight": 0.3, "signal": "at least one [SEVERITY] issue listed" },
+    { "name": "reasoning_present", "weight": 0.2, "signal": "REASONING: non-empty paragraph" }
+  ]
+}
